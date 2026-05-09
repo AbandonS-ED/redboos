@@ -6,6 +6,8 @@ import sys
 from datetime import datetime
 
 from generator.client import XiaohongshuClient
+from formatters.json_fmt import save_json
+from formatters.md_fmt import save_markdown
 
 
 def setup_logging(verbose: bool = False) -> None:
