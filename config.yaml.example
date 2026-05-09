@@ -1,0 +1,12 @@
+# MiniMax API Configuration
+api_key: "YOUR_API_KEY_HERE"
+
+# API Endpoint
+api_url: "https://api.minimax.chat/v1/text/chatcompletion_v2"
+
+# Model
+model: "MiniMax-M2.7"
+
+# Request settings
+temperature: 0.8
+max_tokens: 4096
