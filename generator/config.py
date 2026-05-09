@@ -1,7 +1,10 @@
 """配置加载模块"""
+import logging
 import yaml
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
     """加载 YAML 配置
@@ -18,6 +21,7 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
     """
     path = Path(config_path)
     if not path.exists():
+        logger.error("Config file not found: %s", config_path)
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
     with open(path, "r", encoding="utf-8") as f:
@@ -27,6 +31,7 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
     required = ["api_key", "api_url", "model"]
     for key in required:
         if key not in config:
+            logger.error("Missing required config: %s", key)
             raise ValueError(f"Missing required config: {key}")
 
     return config

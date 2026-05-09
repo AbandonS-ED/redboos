@@ -1,6 +1,9 @@
 """内容解析模块"""
+import logging
 import re
 from typing import Dict, List
+
+logger = logging.getLogger(__name__)
 
 def parse_content(content: str) -> Dict:
     """解析 AI 生成的文本，提取配图提示词
@@ -58,5 +61,8 @@ def parse_content(content: str) -> Dict:
 
     if current_prompt_lines:
         result["image_prompts"].append("\n".join(current_prompt_lines).strip())
+
+    if not result["image_prompts"]:
+        logger.warning("parse_content returned 0 prompts, content length: %d", len(content))
 
     return result

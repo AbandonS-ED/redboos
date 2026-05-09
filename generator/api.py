@@ -1,7 +1,10 @@
 """MiniMax API 调用模块"""
+import logging
 import time
 import requests
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 class MiniMaxAPIError(Exception):
     """API 调用错误"""
@@ -61,10 +64,13 @@ class MiniMaxAPI:
                     return result["choices"][0]["message"]["content"]
 
             except requests.exceptions.Timeout:
+                logger.warning("Request timeout (attempt %d/%d)", attempt + 1, max_retries)
                 continue
-            except requests.exceptions.RequestException:
+            except requests.exceptions.RequestException as e:
+                logger.warning("Request failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
                 continue
-            except Exception:
+            except Exception as e:
+                logger.error("Unexpected error during API call: %s", e)
                 continue
 
         return None
