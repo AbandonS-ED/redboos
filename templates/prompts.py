@@ -134,7 +134,7 @@ STYLE_BLOCK = """风格要求：语言自然，像真实的设计需求文档。
 - 透明度30%，距顶部80px
 
 【重要禁止提示】
-每张图片末尾必须添加：重要提示：所有十六进制颜色代码仅供颜色参考用途，禁止在图片中渲染显示"""
+每张图片提示词的开头必须先写：【重要声明】：以下提示词中的所有十六进制颜色代码（如 #f0f4f8、#1a1a2e 等）仅供颜色参考用途，严禁在生成的图片中渲染显示这些颜色代码字符串。然后再写【配图提示词】和具体内容。
 
 def build_prompt(content_type, topic, note_index=1, material=None):
     """Build a complete user prompt for the given content type and topic.
