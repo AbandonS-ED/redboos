@@ -131,9 +131,7 @@ STYLE_BLOCK = """风格要求：语言自然，像真实的设计需求文档。
 - 底部放置"从安装到精通"，使用20pt字体
 - 标题"Claude Code"，使用96pt超粗
 - 纯色背景，无任何装饰元素
-- 透明度30%，距顶部80px
-
-【重要声明】：每张图片提示词中的所有设计参数（包括但不限于十六进制颜色代码、字体大小、像素值、透明度、圆角等）仅供设计参考用途，严禁在生成的图片中渲染显示。"""
+- 透明度30%，距顶部80px"""
 
 def build_prompt(content_type, topic, note_index=1, material=None):
     """Build a complete user prompt for the given content type and topic.
