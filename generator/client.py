@@ -7,8 +7,8 @@ from typing import List, Dict, Optional
 
 from generator.api import MiniMaxAPI
 from generator.config import load_config
-from parser.content import parse_content
-from templates.prompts import build_prompt, CONTENT_TYPES
+from parser.content import parse_content, parse_body
+from templates.prompts import build_prompt, build_body_prompt, CONTENT_TYPES
 from formatters.json_fmt import save_json
 from formatters.md_fmt import save_markdown
 
@@ -26,11 +26,12 @@ class XiaohongshuClient:
             max_tokens=self.config.get("max_tokens", 4096),
         )
 
-    def generate_note(self, topic: str, content_type: str, no: int = None) -> Optional[Dict]:
-        """生成单条笔记"""
+    def generate_note(self, topic: str, content_type: str, no: int = None,
+                   material: str = None) -> Optional[Dict]:
+        """生成单条笔记（包含配图提示词和文案）"""
         logger.info(f"生成笔记: {topic} (No.{no})")
 
-        prompts = build_prompt(content_type, topic, no)
+        prompts = build_prompt(content_type, topic, no, material)
         content = self.api.generate(prompts["system"], prompts["user"])
 
         if not content:
@@ -41,10 +42,31 @@ class XiaohongshuClient:
         note["index"] = no or 0
         note["topic"] = topic
         note["type"] = content_type
+
+        # 生成文案（传入参考资料）
+        self.generate_body(note, material)
+
         return note
 
+    def generate_body(self, note: Dict, material: str = None) -> None:
+        """根据配图提示词和参考资料生成小红书文案"""
+        if "image_prompts" not in note or not note["image_prompts"]:
+            logger.warning("No image_prompts to generate body from")
+            return
+
+        logger.info("生成小红书文案...")
+        prompts = build_body_prompt(note["topic"], note["type"], note["image_prompts"], material)
+        body_text = self.api.generate(prompts["system"], prompts["user"])
+
+        if body_text:
+            note["body"] = parse_body(body_text)
+            logger.info("文案生成成功")
+        else:
+            logger.warning("文案生成失败")
+
     def generate_batch(self, num: int, topic: str, content_type: str,
-                       delay: float = 1.0, start_no: int = 1) -> List[Dict]:
+                       delay: float = 1.0, start_no: int = 1,
+                       material: str = None) -> List[Dict]:
         """批量生成笔记"""
         logger.info(f"开始生成 {num} 条笔记: {topic}")
         notes = []
@@ -53,7 +75,7 @@ class XiaohongshuClient:
             current_no = start_no + i
             logger.info(f"进度: {i+1}/{num} (No.{current_no})")
 
-            note = self.generate_note(topic, content_type, current_no)
+            note = self.generate_note(topic, content_type, current_no, material)
             if note:
                 notes.append(note)
                 logger.info(f"成功: No.{current_no}")

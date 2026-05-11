@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 
 from generator.client import XiaohongshuClient
 from formatters.json_fmt import save_json
@@ -39,9 +40,20 @@ def main():
     parser.add_argument("--output", type=str, default="output")
     parser.add_argument("--start-no", type=int, default=1)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--material", type=str, default=None, help="参考资料文件路径")
 
     args = parser.parse_args()
     setup_logging(args.verbose)
+
+    # 读取参考资料
+    material_content = None
+    if args.material:
+        mat_path = Path(args.material)
+        if mat_path.exists():
+            material_content = mat_path.read_text(encoding="utf-8")
+            logging.info(f"已加载参考资料: {args.material}")
+        else:
+            logging.warning(f"参考资料文件不存在: {args.material}")
 
     os.makedirs(args.output, exist_ok=True)
 
@@ -59,7 +71,8 @@ def main():
         topic=args.topic,
         content_type=args.type,
         delay=args.delay,
-        start_no=args.start_no
+        start_no=args.start_no,
+        material=material_content
     )
 
     if not notes:
