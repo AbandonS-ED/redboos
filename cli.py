@@ -45,7 +45,7 @@ def main():
     args = parser.parse_args()
     setup_logging(args.verbose)
 
-    # 自动匹配参考资料：zhiliao/{topic}.md
+    # 自动匹配参考资料：模糊匹配 zhiliao/ 目录下的文件
     material_content = None
     if args.material:
         mat_path = Path(args.material)
@@ -55,14 +55,36 @@ def main():
         else:
             logging.warning(f"参考资料文件不存在: {args.material}")
     else:
-        # 自动从 zhiliao 目录匹配（上级目录的 zhiliao 文件夹）
-        zhiliao_path = Path("..") / "zhiliao" / f"{args.topic}.md"
-        if zhiliao_path.exists():
-            material_content = zhiliao_path.read_text(encoding="utf-8")
-            logging.info(f"已自动匹配参考资料: {zhiliao_path}")
-        else:
-            logging.error(f"缺少参考资料，请先在 zhiliao/ 目录放置「{args.topic}.md」文件")
+        # 模糊匹配：文件名包含 topic 关键词（去除空格和下划线后比对）
+        zhiliao_dir = Path("..") / "zhiliao"
+        if not zhiliao_dir.exists():
+            logging.error(f"zhiliao/ 目录不存在")
             sys.exit(1)
+
+        topic_normalized = args.topic.replace(" ", "").replace("_", "")
+
+        def match_score(path):
+            stem = path.stem.replace(" ", "").replace("_", "")
+            # 关键词完全包含在文件名中，或文件名完全包含关键词
+            if topic_normalized in stem or stem in topic_normalized:
+                return len(stem)  # 越短越精确
+            return float('inf')
+
+        candidates = [f for f in zhiliao_dir.glob("*.md")]
+        scored = [(f, match_score(f)) for f in candidates]
+        candidates = [f for f, score in scored if score != float('inf')]
+
+        if len(candidates) == 0:
+            logging.error(f"zhiliao/ 目录中未找到匹配「{args.topic}」的文件")
+            sys.exit(1)
+        elif len(candidates) > 1:
+            logging.error(f"匹配到多个候选文件，请手动指定 --material：")
+            for c in candidates:
+                logging.error(f"  - {c}")
+            sys.exit(1)
+        else:
+            material_content = candidates[0].read_text(encoding="utf-8")
+            logging.info(f"已自动匹配参考资料: {candidates[0]}")
 
     os.makedirs(args.output, exist_ok=True)
 
