@@ -40,12 +40,12 @@ def main():
     parser.add_argument("--output", type=str, default="output")
     parser.add_argument("--start-no", type=int, default=1)
     parser.add_argument("--verbose", action="store_true")
-    parser.add_argument("--material", type=str, default=None, help="参考资料文件路径")
+    parser.add_argument("--material", type=str, default=None, help="参考资料文件路径，留空则自动按topic匹配zhiliao/目录")
 
     args = parser.parse_args()
     setup_logging(args.verbose)
 
-    # 读取参考资料
+    # 自动匹配参考资料：zhiliao/{topic}.md
     material_content = None
     if args.material:
         mat_path = Path(args.material)
@@ -54,6 +54,15 @@ def main():
             logging.info(f"已加载参考资料: {args.material}")
         else:
             logging.warning(f"参考资料文件不存在: {args.material}")
+    else:
+        # 自动从 zhiliao 目录匹配（上级目录的 zhiliao 文件夹）
+        zhiliao_path = Path("..") / "zhiliao" / f"{args.topic}.md"
+        if zhiliao_path.exists():
+            material_content = zhiliao_path.read_text(encoding="utf-8")
+            logging.info(f"已自动匹配参考资料: {zhiliao_path}")
+        else:
+            logging.error(f"缺少参考资料，请先在 zhiliao/ 目录放置「{args.topic}.md」文件")
+            sys.exit(1)
 
     os.makedirs(args.output, exist_ok=True)
 
