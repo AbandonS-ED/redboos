@@ -46,10 +46,20 @@ def parse_content(content: str) -> Dict:
             # 其他 markdown 标题行（如 ### DeepSeek是谁）也跳过
             continue
 
-        step_match = step_pattern.match(clean_line.lstrip('*').strip())
-        step_with_subtitle_match = step_pattern_with_subtitle.match(clean_line.lstrip('*').strip())
+        step_match = step_pattern.match(clean_line.lstrip('*').replace('**', '').strip())
+        step_with_subtitle_match = step_pattern_with_subtitle.match(clean_line.lstrip('*').replace('**', '').strip())
 
         if step_match or step_with_subtitle_match:
+            # 如果是纯标题行（只有标题没有其他内容），跳过不加入
+            # 纯标题行的特征：去掉 **  后就是 "步骤X" 或 "步骤X（xxx）："
+            stripped = clean_line.lstrip('*').replace('**', '').strip()
+            is_pure_title = (step_pattern.match(stripped) and len(stripped) <= 6) or \
+                           (step_with_subtitle_match and len(stripped) <= 15)
+            if is_pure_title:
+                if current_prompt_lines:
+                    result["image_prompts"].append("\n".join(current_prompt_lines).strip())
+                    current_prompt_lines = []
+                continue
             if current_prompt_lines:
                 result["image_prompts"].append("\n".join(current_prompt_lines).strip())
                 current_prompt_lines = []
@@ -63,9 +73,13 @@ def parse_content(content: str) -> Dict:
                 current_prompt_lines.append(line)
         elif line.startswith("# 小红书配图提示词") or line.startswith("# Claude Code 小红书"):
             continue
+        elif re.match(r'^# .+配图提示词.*$', line):
+            # 过滤 "# xxx配图提示词" 类型的标题行，如 "# Claude Code 配图提示词（8张）"
+            continue
         elif "小红书配图提示词" in line:
             continue
         elif clean_line.startswith("---"):
+            # 跳过 markdown 分隔线，不保存
             continue
         else:
             current_prompt_lines.append(line)

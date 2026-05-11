@@ -31,7 +31,7 @@ def main():
   python cli.py --num 10 --topic "最新AI大模型动态" --type "AI资讯" --start-no 31
         """
     )
-    parser.add_argument("--num", type=int, default=10)
+    parser.add_argument("--num", type=int, default=1)
     parser.add_argument("--topic", type=str, required=True)
     parser.add_argument("--type", type=str, default="AI工具推荐")
     parser.add_argument("--format", type=str, choices=["json", "md", "both"], default="both")
