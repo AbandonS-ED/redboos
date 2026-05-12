@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 from generator.api import MiniMaxAPI
 from generator.config import load_config
 from parser.content import parse_content, parse_body
-from templates.prompts import build_prompt, build_body_prompt, CONTENT_TYPES
+from templates import get_template
 from formatters.json_fmt import save_json
 from formatters.md_fmt import save_markdown
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class XiaohongshuClient:
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "config.yaml", template_name: str = "ai_tech"):
         self.config = load_config(config_path)
         self.api = MiniMaxAPI(
             api_url=self.config["api_url"],
@@ -25,13 +25,14 @@ class XiaohongshuClient:
             temperature=self.config.get("temperature", 0.8),
             max_tokens=self.config.get("max_tokens", 4096),
         )
+        self.template = get_template(template_name)
 
     def generate_note(self, topic: str, content_type: str, no: int = None,
                    material: str = None) -> Optional[Dict]:
         """生成单条笔记（包含配图提示词和文案）"""
         logger.info(f"生成笔记: {topic} (No.{no})")
 
-        prompts = build_prompt(content_type, topic, no, material)
+        prompts = self.template.build_prompt(content_type, topic, no, material)
         content = self.api.generate(prompts["system"], prompts["user"])
 
         if not content:
@@ -55,7 +56,7 @@ class XiaohongshuClient:
             return
 
         logger.info("生成小红书文案...")
-        prompts = build_body_prompt(note["topic"], note["type"], note["image_prompts"], material)
+        prompts = self.template.build_body_prompt(note["topic"], note["type"], note["image_prompts"], material)
         body_text = self.api.generate(prompts["system"], prompts["user"])
 
         if body_text:

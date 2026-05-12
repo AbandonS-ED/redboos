@@ -41,6 +41,7 @@ def main():
     parser.add_argument("--start-no", type=int, default=1)
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--material", type=str, default=None, help="参考资料文件路径，留空则自动按topic匹配zhiliao/目录")
+    parser.add_argument("--template", type=str, default="ai_tech", help="模板名称")
 
     args = parser.parse_args()
     setup_logging(args.verbose)
@@ -89,7 +90,7 @@ def main():
     os.makedirs(args.output, exist_ok=True)
 
     try:
-        client = XiaohongshuClient(args.config)
+        client = XiaohongshuClient(args.config, args.template)
     except FileNotFoundError:
         logging.error(f"配置文件不存在: {args.config}")
         sys.exit(1)
