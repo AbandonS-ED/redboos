@@ -12,7 +12,8 @@ def fix_nested_parens(text: str) -> str:
     """
     # 匹配外层（参考xxx：...）且内层包含（参考yyy：数值单位）的结构
     # 只保留内层数值
-    pattern = r'（参考([^：]+)：（参考([^：]+)：(\d+)(px|pt|%)））'
+    # 支持两种括号：corner bracket （U+3008/3009）和 fullwidth parenthesis （U+FF08/FF09）
+    pattern = r'[（\(]参考([^：]+)：[（\(]参考([^：]+)：(\d+)(px|pt|%)[）\)][）\)]'
     text = re.sub(pattern, r'（参考\1：\3\4）', text)
     return text
 
@@ -23,17 +24,18 @@ def fix_shadow_format(text: str) -> str:
     阴影应该是：（参考阴影：0 4px 20px rgba(...)）
     而非：（参考阴影：0（参考像素：4px）（参考像素：20px）rgba(...)）
     """
-    if '（参考阴影：' not in text:
+    if '参考阴影：' not in text:
         return text
 
     def replace_shadow_parts(m):
         full = m.group(0)
-        # 把（参考像素：NNpx）替换为" 数值px "格式，保留空格分隔
-        inner = re.sub(r'（参考像素：(\d+)px）', r' \1px ', full)
+        # 直接把所有嵌套的（参考像素：NNpx）或(参考像素：NNpx)替换为" 数值px "格式
+        inner = re.sub(r'[（\(]参考像素：(\d+)px[）\)]', r' \1px ', full)
         return inner
 
-    # 匹配（参考阴影：...）整体，处理其中的像素引用
-    text = re.sub(r'（参考阴影：[^）]+）', replace_shadow_parts, text)
+    # 匹配（参考阴影：...rgba(...))）整体，处理其中的像素引用
+    # 使用非贪婪匹配，找到 rgba(...)) 然后向前找（参考阴影：
+    text = re.sub(r'[（\(]参考阴影：.+?rgba\([^)]+\)[）\)]', replace_shadow_parts, text)
     return text
 
 
@@ -57,9 +59,12 @@ def fix_format(text: str) -> str:
         counter[0] += 1
         return key
 
-    # 保护已有格式
-    text = re.sub(r'（参考[^）]+：\d+pt）', protect, text)
-    text = re.sub(r'（参考[^）]+：\d+px）', protect, text)
+    # 保护已有格式（支持 corner bracket 和 fullwidth parenthesis）
+    text = re.sub(r'[（\(]参考[^）]+：\d+pt[）\)]', protect, text)
+    text = re.sub(r'[（\(]参考[^）]+：\d+px[）\)]', protect, text)
+
+    # 保护阴影格式的输出（fix_shadow_format 后的纯数值形式）
+    text = re.sub(r'（参考阴影：[^）]+）', protect, text)
 
     # 现在处理裸的 pt/px
     text = re.sub(r'(\d+)pt', r'(参考大小：\1pt)', text)
