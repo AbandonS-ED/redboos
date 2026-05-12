@@ -13,7 +13,7 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
         config_path: 配置文件路径
 
     Returns:
-        配置字典，包含 api_key, api_url, model, temperature, max_tokens
+        配置字典，包含 provider 和各 provider 配置
 
     Raises:
         FileNotFoundError: 配置文件不存在
@@ -28,10 +28,17 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
         config = yaml.safe_load(f)
 
     # 验证必要字段
+    provider = config.get("provider", "minimax")
+    provider_config = config.get(provider)
+
+    if not provider_config:
+        logger.error("Missing config for provider: %s", provider)
+        raise ValueError(f"Missing config for provider: {provider}")
+
     required = ["api_key", "api_url", "model"]
     for key in required:
-        if key not in config:
-            logger.error("Missing required config: %s", key)
-            raise ValueError(f"Missing required config: {key}")
+        if key not in provider_config:
+            logger.error("Missing required config: %s.%s", provider, key)
+            raise ValueError(f"Missing required config: {provider}.{key}")
 
     return config

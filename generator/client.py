@@ -1,13 +1,11 @@
 """小红书内容生成客户端"""
 import logging
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
 
-from generator.api import MiniMaxAPI
-from generator.image_api import MiniMaxImageAPI
 from generator.config import load_config
+from generator.providers import get_text_client, get_image_client
 from parser.content import parse_content, parse_body
 from templates import get_template
 from formatters.json_fmt import save_json
@@ -19,25 +17,21 @@ logger = logging.getLogger(__name__)
 class XiaohongshuClient:
     def __init__(self, config_path: str = "config.yaml", template_name: str = "ai_tech"):
         self.config = load_config(config_path)
-        self.api = MiniMaxAPI(
-            api_url=self.config["api_url"],
-            api_key=self.config["api_key"],
-            model=self.config["model"],
-            temperature=self.config.get("temperature", 0.8),
-            max_tokens=self.config.get("max_tokens", 4096),
-            timeout=self.config.get("timeout", 120),
-        )
+
+        # 根据 provider 加载对应的文本生成客户端
+        provider = self.config.get("provider", "minimax")
+        self.api = get_text_client(provider, self.config)
+        logger.info(f"使用 AI Provider: {self.api.provider_name}")
+
         self.template = get_template(template_name)
 
         # 初始化生图 API（如果启用）
         self.image_api = None
         img_config = self.config.get("image_api", {})
-        if img_config.get("enabled") and img_config.get("api_key") and img_config.get("api_url"):
-            self.image_api = MiniMaxImageAPI(
-                api_key=img_config["api_key"],
-                api_url=img_config["api_url"],
-                model=img_config.get("model", "image-01"),
-            )
+        if img_config.get("enabled"):
+            self.image_api = get_image_client(provider, self.config)
+            if self.image_api:
+                logger.info(f"生图 Provider: {self.image_api.provider_name}")
 
     def generate_note(self, topic: str, content_type: str, no: int = None,
                    material: str = None, output_dir: str = "output") -> Optional[Dict]:

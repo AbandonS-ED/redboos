@@ -1,19 +1,37 @@
-# MiniMax API Configuration
-api_key: "YOUR_API_KEY_HERE"
+# AI Provider 配置
+# 可选值: minimax / openai / claude
+provider: "minimax"
 
-# API Endpoint
-api_url: "https://api.minimax.chat/v1/text/chatcompletion_v2"
+# MiniMax 配置
+minimax:
+  api_key: "YOUR_API_KEY_HERE"
+  api_url: "https://api.minimax.chat/v1/text/chatcompletion_v2"
+  model: "MiniMax-M2.7"
+  temperature: 0.8
+  max_tokens: 16384
+  timeout: 120
 
-# Model
-model: "MiniMax-M2.7"
+# OpenAI 配置（切换 provider 时使用）
+openai:
+  api_key: "YOUR_API_KEY_HERE"
+  api_url: "https://api.openai.com/v1/chat/completions"
+  model: "gpt-4o"
+  temperature: 0.8
+  max_tokens: 16384
+  timeout: 120
 
-# Request settings
-temperature: 0.8
-max_tokens: 16384
+# Anthropic Claude 配置（切换 provider 时使用）
+claude:
+  api_key: "YOUR_API_KEY_HERE"
+  api_url: "https://api.anthropic.com/v1/messages"
+  model: "claude-3-5-sonnet-20241022"
+  temperature: 0.8
+  max_tokens: 16384
+  timeout: 120
 
-# Image Generation API (生图功能)
+# Image Generation API (生图功能，默认关闭)
 image_api:
-  enabled: false  # 默认关闭，设置为 true 开启生图功能
+  enabled: false  # 设置为 true 开启生图功能
   api_key: "YOUR_API_KEY_HERE"
   api_url: "https://api.minimaxi.com/v1/image_generation"
   model: "image-01"
