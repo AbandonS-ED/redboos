@@ -57,6 +57,7 @@ class MiniMaxAPI:
                 )
 
                 if response.status_code != 200:
+                    logger.warning(f"API 返回非200状态: {response.status_code}, 重试中...")
                     continue
 
                 result = response.json()
