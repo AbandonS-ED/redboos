@@ -1,14 +1,44 @@
 """Markdown 格式化输出"""
+import re
 from pathlib import Path
 from typing import List, Dict
 
-IMAGEPROMPT_NOTICE = "【重要声明】：每张图片提示词中的所有设计参数（包括但不限于十六进制颜色代码、字体大小、像素值、透明度、圆角等）仅供设计参考用途，严禁在生成的图片中渲染显示。"
+IMAGEPROMPT_NOTICE = "【重要声明】：每张图片提示词中的所有设计参数（包括但不限于十六进制颜色代码、字体大小、像素值、透明度、圆角等）仅供设计参考用途，严禁在生成的图片中渲染显示。图片尺寸：1080×1440像素（3:4比例），必须严格遵守。"
 
 # 过滤 AI 生成时自带的多余标记行
 IMAGE_PROMPT_CLEAN_LINES = (
     "## 步骤",  # 过滤 ## 步骤一 这类标题
     "**【配图提示词】**",  # 过滤 **【配图提示词】**
 )
+
+def fix_format(text: str) -> str:
+    """修复格式：把裸的 pt/px 值包装成 (参考大小：NNpt) 格式
+    只处理完全裸的值，不处理已有 (参考xxx：NN) 格式的值
+    """
+    # 先把已有的 (参考xxx：NNpt) 形式的值标记出来，避免重复匹配
+    # 匹配 (参考xxx：NNpt) 或 (参考xxx：NNpx) 并替换成占位符
+    protected = {}
+    counter = [0]
+
+    def protect(match):
+        key = f"__PROTECTED_{counter[0]}__"
+        protected[key] = match.group(0)
+        counter[0] += 1
+        return key
+
+    # 保护已有格式
+    text = re.sub(r'（参考[^）]+：\d+pt）', protect, text)
+    text = re.sub(r'（参考[^）]+：\d+px）', protect, text)
+
+    # 现在处理裸的 pt/px
+    text = re.sub(r'(\d+)pt', r'(参考大小：\1pt)', text)
+    text = re.sub(r'(\d+)px', r'(参考像素：\1px)', text)
+
+    # 还原被保护的值
+    for key, val in protected.items():
+        text = text.replace(key, val)
+
+    return text
 
 def save_markdown(notes: List[Dict], output_path: str) -> None:
     """保存为 Markdown 格式 - 包含配图提示词和文案
@@ -45,12 +75,12 @@ def save_markdown(notes: List[Dict], output_path: str) -> None:
                 for j, prompt in enumerate(image_prompts, 1):
                     f.write(f"### 图片{j}\n\n")
                     f.write(f"{IMAGEPROMPT_NOTICE}\n\n")
-                    # 过滤多余标记行后写入
-                    cleaned_lines = []
+                    # 过滤多余标记行并修复格式后写入
+                    fixed_lines = []
                     for line in prompt.strip().split('\n'):
                         if line.strip() and not any(marker in line for marker in IMAGE_PROMPT_CLEAN_LINES):
-                            cleaned_lines.append(line)
-                    f.write('\n'.join(cleaned_lines) + "\n\n")
+                            fixed_lines.append(fix_format(line))
+                    f.write('\n'.join(fixed_lines) + "\n\n")
             if i < len(notes):
                 f.write("---\n\n")
 

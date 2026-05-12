@@ -46,12 +46,28 @@ def parse_content(content: str) -> Dict:
             # 其他 markdown 标题行（如 ### DeepSeek是谁）也跳过
             continue
 
+        # 检查是否以 ## 开头（markdown section header）
+        if line.startswith("## "):
+            # 提取标题内容（去掉 ## 和可能的 ** 包装）
+            title_content = line.lstrip('#').strip()
+            title_clean = title_content.lstrip('*').replace('**', '').strip()
+            # 如果是步骤标题格式，保存当前提示词并开始新的
+            if step_pattern.match(title_clean) or step_pattern_with_subtitle.match(title_clean):
+                if current_prompt_lines:
+                    result["image_prompts"].append("\n".join(current_prompt_lines).strip())
+                    current_prompt_lines = []
+                # 添加步骤标题行
+                current_prompt_lines.append(line)
+                continue
+            # 其他 ## 标题跳过
+            continue
+
         step_match = step_pattern.match(clean_line.lstrip('*').replace('**', '').strip())
         step_with_subtitle_match = step_pattern_with_subtitle.match(clean_line.lstrip('*').replace('**', '').strip())
 
         if step_match or step_with_subtitle_match:
             # 如果是纯标题行（只有标题没有其他内容），跳过不加入
-            # 纯标题行的特征：去掉 **  后就是 "步骤X" 或 "步骤X（xxx）："
+            # 但 ## 步骤标题已经在上面处理过了，这里只处理非 ## 开头的纯标题
             stripped = clean_line.lstrip('*').replace('**', '').strip()
             is_pure_title = (step_pattern.match(stripped) and len(stripped) <= 6) or \
                            (step_with_subtitle_match and len(stripped) <= 15)
@@ -64,19 +80,28 @@ def parse_content(content: str) -> Dict:
                 result["image_prompts"].append("\n".join(current_prompt_lines).strip())
                 current_prompt_lines = []
             current_prompt_lines.append(line)
-        elif clean_line.startswith("【配图提示词】"):
-            if current_prompt_lines:
-                result["image_prompts"].append("\n".join(current_prompt_lines).strip())
-                current_prompt_lines = []
+        elif "【配图提示词】" in clean_line:
             rest = clean_line[len("【配图提示词】"):].strip()
-            if step_pattern.match(rest):
+            # 去掉 ** 包装后再匹配步骤
+            rest_clean = rest.lstrip('*').replace('**', '').strip()
+            # 如果是步骤标题格式（步骤一、步骤二...）
+            if step_pattern.match(rest_clean) or step_pattern_with_subtitle.match(rest_clean):
+                if current_prompt_lines:
+                    result["image_prompts"].append("\n".join(current_prompt_lines).strip())
+                    current_prompt_lines = []
+                current_prompt_lines.append(line)
+            # 如果是单独的 **【配图提示词】** 或 【配图提示词】，不添加到 current_prompt_lines
+            # 只是继续累积下一行内容（不加这行）
+            elif clean_line == "**【配图提示词】**" or clean_line == "【配图提示词】":
+                # 不保存这行，继续等待内容行
+                continue
+            # 如果是其他包含【配图提示词】的行（如 **【配图提示词】**背景设置），直接添加
+            else:
                 current_prompt_lines.append(line)
         elif line.startswith("# 小红书配图提示词") or line.startswith("# Claude Code 小红书"):
             continue
         elif re.match(r'^# .+配图提示词.*$', line):
             # 过滤 "# xxx配图提示词" 类型的标题行，如 "# Claude Code 配图提示词（8张）"
-            continue
-        elif "小红书配图提示词" in line:
             continue
         elif clean_line.startswith("---"):
             # 跳过 markdown 分隔线，不保存
@@ -86,6 +111,10 @@ def parse_content(content: str) -> Dict:
 
     if current_prompt_lines:
         result["image_prompts"].append("\n".join(current_prompt_lines).strip())
+
+    # 限制为 8 条（AI 可能返回多余内容）
+    if len(result["image_prompts"]) > 8:
+        result["image_prompts"] = result["image_prompts"][:8]
 
     if not result["image_prompts"]:
         logger.warning("parse_content returned 0 prompts, content length: %d", len(content))

@@ -169,6 +169,18 @@ def build_prompt(content_type, topic, note_index=1, material=None):
 
     user_prompt = f"""请为「{topic}」生成8张小红书配图提示词。{material_section}
 
+【重要】每张配图提示词必须包含从参考资料中提取的具体内容，不能只描述样式。
+
+每个步骤的内容要求：
+- 步骤一（封面）：必须包含主题标题、副标题（从资料中提取的核心亮点）
+- 步骤二（产品速览）：必须包含产品名称、版本号、核心功能列表（来自资料）
+- 步骤三（数据分析）：必须包含具体数据、指标、数字（来自资料）
+- 步骤四（核心能力）：必须包含具体功能名称和能力描述（来自资料）
+- 步骤五（使用指南）：必须包含具体命令、参数、步骤编号（来自资料）
+- 步骤六（竞品对比）：必须包含对比项名称和具体对比内容（来自资料）
+- 步骤七（行业启示）：必须包含具体观点和说明（来自资料）
+- 步骤八（账号引导）：固定格式，账号名"AI科技观察"+"关注我，持续追踪AI前沿动态"
+
 {STYLE_BLOCK}
 
 {steps[0]}
@@ -219,7 +231,6 @@ def build_body_prompt(topic, content_type, image_prompts, material=None):
     Returns:
         Dict with "system" and "user" keys
     """
-    # Format image prompts for the prompt
     prompts_text = "\n\n".join([f"步骤{i+1}：{p}" for i, p in enumerate(image_prompts)])
 
     material_section = f"\n\n参考资料：\n{material}\n" if material else ""
@@ -236,6 +247,11 @@ def build_body_prompt(topic, content_type, image_prompts, material=None):
 5. 话题标签：3-5个相关话题标签，如 #AI #科技 #人工智能 等
 6. 总字数控制在300-500字
 7. 输出纯文本，不用emoji
+
+【重要】技术内容必须保留具体细节：
+- 命令、代码、路径、参数等要原样保留
+- 安装说明要写清楚具体命令，不能只说"用xxx安装"
+- 数字、版本号、配置值等要精确
 
 格式：
 标题：[标题]
