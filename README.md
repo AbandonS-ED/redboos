@@ -1,17 +1,18 @@
 # 小红书AI科技博主内容生成工具
 
-使用 MiniMax API 批量生成小红书科技博主的配图提示词与正文文案。支持 AI工具推荐、AI资讯、开源项目解读三种内容类型，每条笔记生成 8 张配图的详细提示词 + 配套正文。
+支持 MiniMax / OpenAI / Claude 三种 AI Provider，批量生成小红书科技博主的配图提示词与正文文案。支持 AI工具推荐、AI资讯、开源项目解读三种内容类型，每条笔记生成 8 张配图的详细提示词 + 配套正文。
 
 ## 特性
 
+- **多 AI Provider** - 支持 MiniMax / OpenAI / Claude，切换只需改配置
 - **批量生成** - 支持指定数量、起始编号、请求间隔
 - **三种内容类型** - AI工具推荐、AI资讯、开源项目解读
 - **自动匹配资料** - 根据主题自动从 `zhiliao/` 目录匹配参考资料
 - **模糊匹配** - 文件名与主题模糊对应，无需精确匹配
 - **双输出格式** - 支持 JSON 和 Markdown 两种输出
 - **8步配图体系** - 封面 → 产品介绍 → 数据分析 → 能力分析 → 使用指南 → 竞品对比 → 行业启示 → 账号引导
-- **可配置生图** - 通过 `image_api.enabled` 开关控制是否调用 MiniMax 生图 API，默认关闭
-- **单元测试** - 15 个测试覆盖解析函数，修改代码时自动验证功能完整
+- **可配置生图** - 通过 `image_api.enabled` 开关控制，默认关闭
+- **单元测试** - 15 个测试覆盖核心函数
 
 ## 安装
 
@@ -24,23 +25,48 @@ pip install pytest  # 用于运行测试
 
 ## 配置
 
-复制配置文件模板并填入你的 MiniMax API Key：
+复制配置文件模板并填入你的 API Key：
 
 ```bash
 cp config.yaml.example config.yaml
 # 编辑 config.yaml，填入 api_key
 ```
 
-```yaml
-# config.yaml
-api_key: "YOUR_API_KEY_HERE"
-api_url: "https://api.minimax.chat/v1/text/chatcompletion_v2"
-model: "MiniMax-M2.7"
-temperature: 0.8
-max_tokens: 16384
-timeout: 120  # 请求超时时间（秒）
+### AI Provider 配置
 
-# 生图功能（默认关闭，升级套餐后设为 true 开启）
+```yaml
+# AI Provider 配置（必填）
+# 可选值: minimax / openai / claude
+provider: "minimax"
+
+# MiniMax 配置
+minimax:
+  api_key: "YOUR_API_KEY_HERE"
+  api_url: "https://api.minimax.chat/v1/text/chatcompletion_v2"
+  model: "MiniMax-M2.7"
+  temperature: 0.8
+  max_tokens: 16384
+  timeout: 120
+
+# OpenAI GPT-4o 配置（切换 provider 时使用）
+openai:
+  api_key: "YOUR_API_KEY_HERE"
+  api_url: "https://api.openai.com/v1/chat/completions"
+  model: "gpt-4o"
+  temperature: 0.8
+  max_tokens: 16384
+  timeout: 120
+
+# Anthropic Claude 配置（切换 provider 时使用）
+claude:
+  api_key: "YOUR_API_KEY_HERE"
+  api_url: "https://api.anthropic.com/v1/messages"
+  model: "claude-3-5-sonnet-20241022"
+  temperature: 0.8
+  max_tokens: 16384
+  timeout: 120
+
+# 生图功能（默认关闭）
 image_api:
   enabled: false
   api_key: "YOUR_API_KEY_HERE"
@@ -49,7 +75,7 @@ image_api:
   aspect_ratio: "3:4"
 ```
 
-获取 API Key：[MiniMax 开放平台](https://platform.minimax.chat/user-center/basic-information/interface-key)
+获取 MiniMax API Key：[MiniMax 开放平台](https://platform.minimax.chat/user-center/basic-information/interface-key)
 
 ## 使用方法
 
@@ -226,10 +252,15 @@ xiaohongshu-ai/
 ├── cli.py                    # CLI 入口
 ├── generate.py               # 兼容主入口（调用 cli.py）
 ├── generator/
-│   ├── api.py               # MiniMax API 调用封装
 │   ├── client.py            # 主编排生成流程
 │   ├── config.py            # 配置文件加载
-│   └── image_api.py        # MiniMax 生图 API 调用
+│   └── providers/          # AI Provider 抽象层
+│       ├── __init__.py      # 工厂函数 get_text_client/get_image_client
+│       ├── base.py         # 抽象基类
+│       ├── minimax.py      # MiniMax 实现
+│       ├── openai.py       # OpenAI GPT-4o 实现
+│       ├── claude.py       # Anthropic Claude 实现
+│       └── image_minimax.py # MiniMax 生图实现
 ├── parser/
 │   └── content.py           # 解析 API 响应，提取提示词和文案
 ├── templates/
@@ -240,9 +271,7 @@ xiaohongshu-ai/
 │   ├── json_fmt.py          # JSON 输出格式化
 │   ├── md_fmt.py            # Markdown 输出格式化
 │   └── utils.py             # 格式修复工具
-├── tests/
-│   ├── test_parse_content.py  # parse_content 单元测试
-│   └── test_parse_body.py    # parse_body 单元测试
+├── tests/                   # 单元测试
 ├── templates/               # 提示词模板目录
 ├── output/                  # 生成文件输出目录
 ├── config.yaml              # 配置文件（含 API Key）
