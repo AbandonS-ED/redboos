@@ -12,12 +12,14 @@ class MiniMaxAPIError(Exception):
 
 class MiniMaxAPI:
     def __init__(self, api_url: str, api_key: str, model: str,
-                 temperature: float = 0.8, max_tokens: int = 4096):
+                 temperature: float = 0.8, max_tokens: int = 4096,
+                 timeout: int = 120):
         self.api_url = api_url
         self.api_key = api_key
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.timeout = timeout
 
     def generate(self, system_prompt: str, user_prompt: str, max_retries: int = 3) -> Optional[str]:
         """调用 API 生成内容
@@ -53,7 +55,7 @@ class MiniMaxAPI:
                     self.api_url,
                     headers=headers,
                     json=payload,
-                    timeout=120
+                    timeout=self.timeout
                 )
 
                 if response.status_code != 200:

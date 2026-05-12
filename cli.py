@@ -104,7 +104,8 @@ def main():
         content_type=args.type,
         delay=args.delay,
         start_no=args.start_no,
-        material=material_content
+        material=material_content,
+        output_dir=args.output
     )
 
     if not notes:

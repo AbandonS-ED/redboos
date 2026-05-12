@@ -1,9 +1,12 @@
 """Markdown 格式化输出"""
+import logging
 import re
 from pathlib import Path
 from typing import List, Dict
 
 from .utils import fix_format
+
+logger = logging.getLogger(__name__)
 
 IMAGEPROMPT_NOTICE = "【重要声明】：每张图片提示词中的所有设计参数（包括但不限于十六进制颜色代码、字体大小、像素值、透明度、圆角等）仅供设计参考用途，严禁在生成的图片中渲染显示。图片尺寸：1080×1440像素（3:4比例），必须严格遵守。"
 
@@ -56,4 +59,4 @@ def save_markdown(notes: List[Dict], output_path: str) -> None:
             if i < len(notes):
                 f.write("---\n\n")
 
-    print(f"[OK] 已保存 Markdown 文件: {output_path}")
+    logger.info(f"已保存 Markdown 文件: {output_path}")

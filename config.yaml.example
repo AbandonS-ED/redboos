@@ -9,4 +9,12 @@ model: "MiniMax-M2.7"
 
 # Request settings
 temperature: 0.8
-max_tokens: 4096
+max_tokens: 16384
+
+# Image Generation API (生图功能)
+image_api:
+  enabled: false  # 默认关闭，设置为 true 开启生图功能
+  api_key: "YOUR_API_KEY_HERE"
+  api_url: "https://api.minimaxi.com/v1/image_generation"
+  model: "image-01"
+  aspect_ratio: "3:4"

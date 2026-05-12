@@ -1,9 +1,12 @@
 """JSON 格式化输出"""
 import json
+import logging
 from pathlib import Path
 from typing import List, Dict
 
 from .utils import fix_format
+
+logger = logging.getLogger(__name__)
 
 
 def save_json(notes: List[Dict], output_path: str) -> None:
@@ -25,4 +28,4 @@ def save_json(notes: List[Dict], output_path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(notes, f, ensure_ascii=False, indent=2)
 
-    print(f"[OK] 已保存 JSON 文件: {output_path}")
+    logger.info(f"已保存 JSON 文件: {output_path}")
