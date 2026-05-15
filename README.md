@@ -12,6 +12,7 @@
 - **双输出格式** - 支持 JSON 和 Markdown 两种输出
 - **8步配图体系** - 封面 → 产品介绍 → 数据分析 → 能力分析 → 使用指南 → 竞品对比 → 行业启示 → 账号引导
 - **可配置生图** - 通过 `image_api.enabled` 开关控制，默认关闭
+- **联网搜索** - 通过 Tavily API 搜索资料，生成中文摘要
 - **单元测试** - 15 个测试覆盖核心函数
 
 ## 安装
@@ -22,6 +23,18 @@ cd xiaohongshu-ai
 pip install -r requirements.txt
 pip install pytest  # 用于运行测试
 ```
+
+### Tavily 搜索配置（可选）
+
+用于联网搜索功能：
+
+```yaml
+# config.yaml
+tavily:
+  api_key: "YOUR_TAVILY_API_KEY"
+```
+
+获取 Tavily API Key：[Tavily API](https://tavily.com)
 
 ## 配置
 
@@ -93,6 +106,19 @@ python cli.py --num 10 --topic "OpenAI Codex" --type "AI工具推荐" --start-no
 
 # 指定参考资料文件
 python cli.py --topic "DeepSeek融资" --material ../zhiliao/DeepSeek融资500亿.md
+```
+
+### 联网搜索
+
+```bash
+# 搜索资料（默认输出到 zhiliao/ 目录）
+python search_cli.py --topic "DeepSeek TUI"
+
+# 包含 AI 整理的摘要答案
+python search_cli.py --topic "DeepSeek TUI" --include-answer
+
+# 指定结果数量
+python search_cli.py --topic "DeepSeek TUI" --max-results 10
 ```
 
 ### 参数说明
@@ -249,7 +275,8 @@ pytest tests/ -v
 
 ```
 xiaohongshu-ai/
-├── cli.py                    # CLI 入口
+├── cli.py                    # CLI 入口（生成配图提示词+文案）
+├── search_cli.py            # 联网搜索入口（Tavily 搜索）
 ├── generate.py               # 兼容主入口（调用 cli.py）
 ├── generator/
 │   ├── client.py            # 主编排生成流程

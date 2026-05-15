@@ -36,3 +36,7 @@ image_api:
   api_url: "https://api.minimaxi.com/v1/image_generation"
   model: "image-01"
   aspect_ratio: "3:4"
+
+# Tavily 搜索 API
+tavily:
+  api_key: "YOUR_TAVILY_API_KEY_HERE"

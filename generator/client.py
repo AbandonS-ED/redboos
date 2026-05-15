@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 from generator.config import load_config
-from generator.providers import get_text_client, get_image_client
+from generator.providers import get_text_client
 from parser.content import parse_content, parse_body
 from templates import get_template
 from formatters.json_fmt import save_json
@@ -24,14 +24,6 @@ class XiaohongshuClient:
         logger.info(f"使用 AI Provider: {self.api.provider_name}")
 
         self.template = get_template(template_name)
-
-        # 初始化生图 API（如果启用）
-        self.image_api = None
-        img_config = self.config.get("image_api", {})
-        if img_config.get("enabled"):
-            self.image_api = get_image_client(provider, self.config)
-            if self.image_api:
-                logger.info(f"生图 Provider: {self.image_api.provider_name}")
 
     def generate_note(self, topic: str, content_type: str, no: int = None,
                    material: str = None, output_dir: str = "output") -> Optional[Dict]:
@@ -61,10 +53,6 @@ class XiaohongshuClient:
         # 生成文案（传入参考资料）
         self.generate_body(note, material)
 
-        # 生图（如果启用）
-        if self.image_api:
-            self._generate_images_for_note(note, output_dir)
-
         return note
 
     def generate_body(self, note: Dict, material: str = None) -> None:
@@ -82,33 +70,6 @@ class XiaohongshuClient:
             logger.info("文案生成成功")
         else:
             logger.warning("文案生成失败")
-
-    def _generate_images_for_note(self, note: Dict, output_dir: str) -> None:
-        """为笔记生成配图"""
-        if not note.get("image_prompts"):
-            return
-
-        topic = note.get("topic", "unknown")
-        no = note.get("index", 0)
-        safe_topic = "".join(c if c.isalnum() or c in ("_", "-") else "_" for c in topic)
-        note_dir = Path(output_dir) / f"{safe_topic}_{no}"
-        note_dir.mkdir(parents=True, exist_ok=True)
-
-        logger.info(f"开始生成 {len(note['image_prompts'])} 张图片...")
-
-        for i, prompt in enumerate(note["image_prompts"], 1):
-            logger.info(f"生成图片 {i}/{len(note['image_prompts'])} ...")
-            image_data = self.image_api.generate_image(prompt)
-
-            if image_data:
-                img_path = note_dir / f"image_{i}.png"
-                with open(img_path, "wb") as f:
-                    f.write(image_data)
-                logger.info(f"已保存图片: {img_path}")
-            else:
-                logger.warning(f"图片 {i} 生成失败，跳过")
-
-        logger.info(f"图片生成完成: {note_dir}")
 
     def generate_batch(self, num: int, topic: str, content_type: str,
                        delay: float = 1.0, start_no: int = 1,
