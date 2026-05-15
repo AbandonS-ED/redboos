@@ -2,14 +2,12 @@
 import argparse
 import json
 import logging
-import os
 import pathlib
-import re
 import sys
 import urllib.request
 from datetime import datetime
 
-from generator.config import load_config
+from generator.config import load_config, load_tavily_key
 
 TAVILY_URL = "https://api.tavily.com/search"
 
@@ -25,42 +23,10 @@ def setup_logging(verbose: bool = False) -> None:
     )
 
 
-def load_tavily_key(config_path: str = "config.yaml", cli_key: str = None) -> str:
-    """加载 Tavily API Key"""
-    if cli_key:
-        return cli_key
-
-    # 从 config.yaml 读取
-    try:
-        config = load_config(config_path)
-        key = config.get("tavily", {}).get("api_key")
-        if key:
-            return key
-    except Exception:
-        pass
-
-    # 从环境变量读取
-    key = os.environ.get("TAVILY_API_KEY")
-    if key:
-        return key.strip()
-
-    # 从 ~/.openclaw/.env 读取
-    env_path = pathlib.Path.home() / ".openclaw" / ".env"
-    if env_path.exists():
-        try:
-            txt = env_path.read_text(encoding="utf-8", errors="ignore")
-            m = re.search(r"^\s*TAVILY_API_KEY\s*=\s*(.+?)\s*$", txt, re.M)
-            if m:
-                return m.group(1).strip().strip('"').strip("'")
-        except Exception:
-            pass
-
-    return None
-
-
-def tavily_search(query: str, max_results: int, include_answer: bool, search_depth: str) -> dict:
+def tavily_search(query: str, max_results: int, include_answer: bool,
+                 search_depth: str, config_path: str, api_key: str = None) -> dict:
     """直接调用 Tavily API"""
-    key = load_tavily_key()
+    key = load_tavily_key(config_path, api_key)
     if not key:
         logger.error("未找到 Tavily API Key，请提供 --api-key 或在 config.yaml 中配置")
         sys.exit(1)
@@ -125,7 +91,8 @@ def search_and_save(topic: str, max_results: int, output_dir: pathlib.Path,
     logger.info(f"搜索主题: {enhanced_topic}")
 
     try:
-        result = tavily_search(enhanced_topic, max_results, include_answer, search_depth)
+        result = tavily_search(enhanced_topic, max_results, include_answer, search_depth,
+                              args.config, args.api_key)
     except SystemExit:
         sys.exit(1)
 
