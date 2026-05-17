@@ -110,6 +110,12 @@ class TestFixFormat:
         result = fix_format(text)
         assert '（参考像素：200px）' in result
 
+    def test_naked_percent_gets_wrapped(self):
+        """裸的百分比值被包装"""
+        text = '透明度30%'
+        result = fix_format(text)
+        assert '（参考透明度：30%）' in result
+
     def test_protected_ref_preserved(self):
         """保护机制：已有的参考值不会被裸值包装规则影响"""
         text = '（参考像素：12px）'

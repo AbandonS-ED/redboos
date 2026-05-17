@@ -1,4 +1,10 @@
 """AI 科技账号模板实现"""
+from generator.constants import (
+    IMAGE_COUNT, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_ASPECT_RATIO,
+    BG_COLOR, TEXT_COLOR, CARD_BG_COLOR, TAG_BG_COLOR, AUX_GRAY, LIGHT_GRAY,
+    FONT_TITLE, FONT_PAGE_TITLE, FONT_SUBTITLE, FONT_BODY, FONT_CAPTION,
+    CONTENT_TYPES, STEP_SUBTITLES
+)
 from .base import BaseTemplate
 
 
@@ -11,7 +17,7 @@ class AITechTemplate(BaseTemplate):
 
     @property
     def content_types(self) -> list:
-        return ["AI资讯", "AI工具推荐", "开源项目解读"]
+        return CONTENT_TYPES
 
     # System prompt - defines the AI tech blogger persona (unchanged)
     SYSTEM_PROMPT = """你是一个专注AI领域的科技博主，追踪最前沿的AI动态和技术进展。
@@ -32,30 +38,11 @@ class AITechTemplate(BaseTemplate):
   - 标签背景：深蓝色 #1a1a2e
 - 文字层级：主标题96pt > 页面标题40-42pt > 副标题28-36pt > 正文24pt > 说明文字18-20pt
 - 留白原则：元素间保持充足空间，呼吸感强
-- 账号名统一为"AI科技观察"或根据主题调整
+- 账号名统一为"SLEEP"或根据主题调整
 - 所有图片风格必须保持绝对统一"""
 
     # Step subtitles that differ by content type
-    STEP_SUBTITLES = {
-        "AI资讯": {
-            "步骤二": "新闻要点",
-            "步骤四": "背景解读",
-            "步骤六": "影响展望",
-            "步骤七": "趋势预测",
-        },
-        "AI工具推荐": {
-            "步骤二": "产品速览",
-            "步骤四": "核心能力",
-            "步骤六": "竞品对比",
-            "步骤七": "行业启示",
-        },
-        "开源项目解读": {
-            "步骤二": "项目简介",
-            "步骤四": "核心特性",
-            "步骤六": "竞品对比",
-            "步骤七": "应用场景",
-        },
-    }
+    STEP_SUBTITLES = STEP_SUBTITLES  # 从 constants 导入
 
     # Step content templates - steps that differ by content type
     STEP_CONTENT = {
@@ -117,7 +104,7 @@ class AITechTemplate(BaseTemplate):
 
 格式要求：
 1. 每张图片必须以"【配图提示词】"开头
-2. 每张图片标题格式："步骤一"、"步骤二"、"步骤三"……"步骤八"（注意：必须用中文数字，不能用阿拉伯数字）
+2. 图片数量根据资料充足程度决定（4-8张）。步骤编号按实际生成数量用中文数字连续编号（如步骤一、步骤二、步骤四），不得断档，不得省略任何一步，不得用"不足"、"跳过"、"略过"等描述
 3. 每张图片必须包含：背景设置、顶部区域、主体区域、底部区域、整体风格
 4. 重要: 要显示在图片上的文字必须用双引号""括起来，例如: 放置文字"从安装到精通"、标题"Claude Code"、副标题"官方编程工具"
 5. 所有设计参数（颜色代码、字体大小、像素值、透明度、圆角等）不是显示内容，用括号注明仅供参考：
@@ -125,7 +112,7 @@ class AITechTemplate(BaseTemplate):
    - 像素值：（参考像素：80px）
    - 透明度：（参考透明度：30%）
    - 圆角：（参考圆角：8px）
-6. 8张图片必须严格按顺序：步骤一、步骤二、步骤三、步骤四、步骤五、步骤六、步骤七、步骤八，不可缺少任何一步，不可添加额外步骤
+6. **【关键】如果某步骤资料中没有具体内容（命令、数据、功能点、对比项等），该步骤直接省略不写，不要任何占位文字或描述，严禁出现"不足"、"跳过"、"略过"、"无内容"等字样**
 7. **【关键】步骤五（使用指南）必须在一张图内完成所有步骤展示**，不得将步骤拆分到多个图片中。例如步骤五应包含：步骤编号01/02/03/04、每步标题、每步命令/说明，所有内容在一张图的主体区域内呈现
 
 【颜色代码格式规则】
@@ -167,7 +154,7 @@ class AITechTemplate(BaseTemplate):
 
         # Build step lines
         steps = []
-        for i in range(1, 9):
+        for i in range(1, IMAGE_COUNT + 1):
             step_key = f"步骤{i}"
             subtitle = subtitles.get(step_key, "")
 
@@ -188,14 +175,8 @@ class AITechTemplate(BaseTemplate):
 【重要】每张配图提示词必须包含从参考资料中提取的具体内容，不能只描述样式。
 
 每个步骤的内容要求：
-- 步骤一（封面）：必须包含主题标题、副标题（从资料中提取的核心亮点）
-- 步骤二（产品速览）：必须包含产品名称、版本号、核心功能列表（来自资料）
-- 步骤三（数据分析）：必须包含具体数据、指标、数字（来自资料）
-- 步骤四（核心能力）：必须包含具体功能名称和能力描述（来自资料）
-- 步骤五（使用指南）：必须包含具体命令、参数、步骤编号（来自资料）
-- 步骤六（竞品对比）：必须包含对比项名称和具体对比内容（来自资料）
-- 步骤七（行业启示）：必须包含具体观点和说明（来自资料）
-- 步骤八（账号引导）：固定格式，账号名"AI科技观察"+"关注我，持续追踪AI前沿动态"
+- 步骤一~步骤八：根据参考资料的信息密度决定是否生成该步骤。只有资料中有具体内容（命令、数据、功能点、对比项等）的步骤才生成，没有具体内容的步骤直接省略，不要写任何占位文字或描述
+- 步骤八（账号引导）：如资料中无账号信息，固定格式：账号名"SLEEP"+"关注我，持续追踪AI前沿动态"
 
 {self.STYLE_BLOCK}
 
@@ -215,13 +196,13 @@ class AITechTemplate(BaseTemplate):
 
     def build_body_prompt(self, topic, content_type, image_prompts, material=None):
         """Build a prompt for generating Xiaohongshu body text."""
-        prompts_text = "\n\n".join([f"步骤{i+1}：{p}" for i, p in enumerate(image_prompts)])
+        prompts_text = "\n\n".join([f"步骤{i+1}：{p}" for i, p in enumerate(image_prompts[:IMAGE_COUNT])])
 
         material_section = f"\n\n参考资料：\n{material}\n" if material else ""
 
         user_prompt = f"""请为「{topic}」生成小红书正文。
 
-根据以下8条配图提示词的内容，重新组织成按主题分块的小红书正文。{material_section}
+根据以下N条配图提示词的内容（已根据资料充足程度过滤，省略了内容不足的步骤），重新组织成按主题分块的小红书正文。{material_section}
 
 要求：
 1. 标题：简洁有力，一句话概括核心亮点

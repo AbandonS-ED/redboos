@@ -20,11 +20,12 @@ class MiniMaxImageAPIClient(BaseImageAPIClient):
 
     def __init__(self, config: dict):
         provider_config = config.get("minimax", config)
-        img_config = config.get("image_api", provider_config)
-        self.api_key = img_config.get("api_key", provider_config.get("api_key"))
+        img_config = config.get("image_api", {})
+        self.api_key = img_config.get("api_key") or provider_config.get("api_key")
         self.api_url = img_config.get("api_url", "https://api.minimaxi.com/v1/image_generation")
         self.model = img_config.get("model", "image-01")
         self.aspect_ratio = img_config.get("aspect_ratio", "3:4")
+        self.timeout = img_config.get("timeout", 300)
 
     @property
     def provider_name(self) -> str:
@@ -53,7 +54,7 @@ class MiniMaxImageAPIClient(BaseImageAPIClient):
                     self.api_url,
                     headers=headers,
                     json=payload,
-                    timeout=timeout
+                    timeout=self.timeout
                 )
 
                 if response.status_code != 200:

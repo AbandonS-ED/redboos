@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 from generator.config import load_config
+from generator.exceptions import MaterialNotFoundError, MaterialAmbiguousError
 from generator.providers import get_text_client
+from generator.constants import DEFAULT_DELAY
 from parser.content import parse_content, parse_body
 from templates import get_template
 from formatters.json_fmt import save_json
@@ -69,10 +71,10 @@ class XiaohongshuClient:
             note["body"] = parse_body(body_text)
             logger.info("文案生成成功")
         else:
-            logger.warning("文案生成失败")
+            logger.error("文案生成失败")
 
     def generate_batch(self, num: int, topic: str, content_type: str,
-                       delay: float = 1.0, start_no: int = 1,
+                       delay: float = DEFAULT_DELAY, start_no: int = 1,
                        material: str = None, output_dir: str = "output") -> List[Dict]:
         """批量生成笔记"""
         logger.info(f"开始生成 {num} 条笔记: {topic}")

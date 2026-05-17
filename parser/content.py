@@ -4,12 +4,15 @@ import re
 from enum import Enum, auto
 from typing import Dict, List, Tuple
 
+from generator.constants import IMAGE_COUNT, NOTE_TITLE_MAX_LEN
+
 logger = logging.getLogger(__name__)
 
 
 # 正则表达式（编译一次）
-STEP_PATTERN = re.compile(r'^步骤[一二三四五六七八九十]+')
-STEP_PATTERN_WITH_SUBTITLE = re.compile(r'^步骤[一二三四五六七八九十]+（([^）]+)）：')
+# 支持中文数字一到十九（步骤十一、步骤十二...十九）
+STEP_PATTERN = re.compile(r'^步骤[一二三四五六七八九十百千万亿零〇]+')
+STEP_PATTERN_WITH_SUBTITLE = re.compile(r'^步骤[一二三四五六七八九十百千万亿零〇]+（([^）]+)）：')
 IMAGE_PROMPT_MARKER = "【配图提示词】"
 
 
@@ -136,8 +139,8 @@ def parse_content(content: str) -> Dict:
     if current:
         result["image_prompts"].append("\n".join(current).strip())
 
-    if len(result["image_prompts"]) > 8:
-        result["image_prompts"] = result["image_prompts"][:8]
+    if len(result["image_prompts"]) > IMAGE_COUNT:
+        result["image_prompts"] = result["image_prompts"][:IMAGE_COUNT]
 
     if not result["image_prompts"]:
         logger.warning("parse_content returned 0 prompts, content length: %d", len(content))
@@ -209,7 +212,7 @@ def parse_body(content: str) -> Dict:
         elif clean_line.startswith("标签："):
             result["tags"] = clean_line[3:].strip().split()
         elif in_body_section:
-            is_short_phrase = len(clean_line) <= 15 and not clean_line.endswith(("。", "，", ".", ","))
+            is_short_phrase = len(clean_line) <= NOTE_TITLE_MAX_LEN and not clean_line.endswith(("。", "，", ".", ","))
 
             if current_section_title:
                 if is_short_phrase:

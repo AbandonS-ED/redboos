@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generator.client import XiaohongshuClient
+from generator.exceptions import MaterialNotFoundError, MaterialAmbiguousError
 from formatters.json_fmt import save_json
 from formatters.md_fmt import save_markdown
 
@@ -46,7 +47,6 @@ def main():
     args = parser.parse_args()
     setup_logging(args.verbose)
 
-    # 自动匹配参考资料：模糊匹配 zhiliao/ 目录下的文件
     material_content = None
     if args.material:
         mat_path = Path(args.material)
@@ -54,38 +54,12 @@ def main():
             material_content = mat_path.read_text(encoding="utf-8")
             logging.info(f"已加载参考资料: {args.material}")
         else:
-            logging.warning(f"参考资料文件不存在: {args.material}")
+            logging.error(f"参考资料文件不存在: {args.material}")
+            sys.exit(1)
     else:
-        # 模糊匹配：文件名包含 topic 关键词（去除空格和下划线后比对）
-        zhiliao_dir = Path("..") / "zhiliao"
-        if not zhiliao_dir.exists():
-            logging.error(f"zhiliao/ 目录不存在")
+        material_content = _match_material(args.topic)
+        if material_content is None:
             sys.exit(1)
-
-        topic_normalized = args.topic.replace(" ", "").replace("_", "")
-
-        def match_score(path):
-            stem = path.stem.replace(" ", "").replace("_", "")
-            # 关键词完全包含在文件名中，或文件名完全包含关键词
-            if topic_normalized in stem or stem in topic_normalized:
-                return len(stem)  # 越短越精确
-            return float('inf')
-
-        candidates = [f for f in zhiliao_dir.glob("*.md")]
-        scored = [(f, match_score(f)) for f in candidates]
-        candidates = [f for f, score in scored if score != float('inf')]
-
-        if len(candidates) == 0:
-            logging.error(f"zhiliao/ 目录中未找到匹配「{args.topic}」的文件")
-            sys.exit(1)
-        elif len(candidates) > 1:
-            logging.error(f"匹配到多个候选文件，请手动指定 --material：")
-            for c in candidates:
-                logging.error(f"  - {c}")
-            sys.exit(1)
-        else:
-            material_content = candidates[0].read_text(encoding="utf-8")
-            logging.info(f"已自动匹配参考资料: {candidates[0]}")
 
     os.makedirs(args.output, exist_ok=True)
 
@@ -123,6 +97,38 @@ def main():
         save_markdown(notes, os.path.join(args.output, f"{base_name}.md"))
 
     logging.info(f"完成: {os.path.abspath(args.output)}")
+
+
+def _match_material(topic: str) -> str:
+    """从上级 zhiliao/ 目录匹配参考资料"""
+    zhiliao_dir = Path("..") / "zhiliao"
+    if not zhiliao_dir.exists():
+        logging.error(f"zhiliao/ 目录不存在")
+        return None
+
+    topic_normalized = topic.replace(" ", "").replace("_", "")
+
+    def match_score(path):
+        stem = path.stem.replace(" ", "").replace("_", "")
+        if topic_normalized in stem or stem in topic_normalized:
+            return len(stem)
+        return float('inf')
+
+    candidates = [f for f in zhiliao_dir.glob("*.md")]
+    scored = [(f, match_score(f)) for f in candidates]
+    candidates = [f for f, score in scored if score != float('inf')]
+
+    if len(candidates) == 0:
+        logging.error(f"zhiliao/ 目录中未找到匹配「{topic}」的文件")
+        return None
+    elif len(candidates) > 1:
+        logging.error(f"匹配到多个候选文件，请手动指定 --material：")
+        for c in candidates:
+            logging.error(f"  - {c}")
+        return None
+    else:
+        logging.info(f"已自动匹配参考资料: {candidates[0]}")
+        return candidates[0].read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -1,21 +1,33 @@
 """Markdown 格式化输出"""
 import logging
-import re
 from pathlib import Path
 from typing import List, Dict
 
+from generator.constants import IMAGEPROMPT_NOTICE
 from .utils import fix_format
 
 logger = logging.getLogger(__name__)
 
-IMAGEPROMPT_NOTICE = "【重要声明】：每张图片提示词中的所有设计参数（包括但不限于十六进制颜色代码、字体大小、像素值、透明度、圆角等）仅供设计参考用途，严禁在生成的图片中渲染显示。图片尺寸：1080×1440像素（3:4比例），必须严格遵守。"
-
-IMAGE_PROMPT_CLEAN_LINES = (
+# 过滤掉 markdown 元标记行（步骤标题、声明、重复等）
+# 使用行首前缀匹配，避免误杀正文中包含"步骤"等子串的内容
+_CLEAN_LINE_PREFIXES = (
     "## 步骤",
-    "**【配图提示词】**",
-    IMAGEPROMPT_NOTICE,
-    IMAGEPROMPT_NOTICE + "\n" + IMAGEPROMPT_NOTICE,  # AI有时会重复生成
+    "**【配图提示词】",
 )
+_CLEAN_LINE_EXACT = {
+    IMAGEPROMPT_NOTICE,
+    IMAGEPROMPT_NOTICE + "\n" + IMAGEPROMPT_NOTICE,
+}
+
+def _is_meta_line(line: str) -> bool:
+    """判断是否为应过滤的 markdown 元标记行"""
+    stripped = line.strip()
+    if stripped in _CLEAN_LINE_EXACT:
+        return True
+    for prefix in _CLEAN_LINE_PREFIXES:
+        if stripped.startswith(prefix):
+            return True
+    return False
 
 def save_markdown(notes: List[Dict], output_path: str) -> None:
     """保存为 Markdown 格式 - 包含配图提示词和文案
@@ -55,7 +67,7 @@ def save_markdown(notes: List[Dict], output_path: str) -> None:
                     # 过滤多余标记行并修复格式后写入
                     fixed_lines = []
                     for line in prompt.strip().split('\n'):
-                        if line.strip() and not any(marker in line for marker in IMAGE_PROMPT_CLEAN_LINES):
+                        if line.strip() and not _is_meta_line(line):
                             fixed_lines.append(fix_format(line))
                     f.write('\n'.join(fixed_lines) + "\n\n")
             if i < len(notes):

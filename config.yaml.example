@@ -10,7 +10,6 @@ minimax:
   temperature: 0.8
   max_tokens: 16384
   timeout: 120
-
 # OpenAI 配置（切换 provider 时使用）
 openai:
   api_key: "YOUR_API_KEY_HERE"

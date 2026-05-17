@@ -66,9 +66,10 @@ def fix_format(text: str) -> str:
     # 保护阴影格式的输出（fix_shadow_format 后的纯数值形式）
     text = re.sub(r'（参考阴影：[^）]+）', protect, text)
 
-    # 现在处理裸的 pt/px，用全角括号替换
+    # 现在处理裸的 pt/px/%，用全角括号替换
     text = re.sub(r'(\d+)pt', r'（参考大小：\1pt）', text)
     text = re.sub(r'(\d+)px', r'（参考像素：\1px）', text)
+    text = re.sub(r'(\d+)%', r'（参考透明度：\1%）', text)
 
     # 还原被保护的值
     for key, val in protected.items():

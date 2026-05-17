@@ -15,6 +15,11 @@ class BaseAPIClient(ABC):
     def __init__(self, config: dict):
         self.max_retries = 3
         self.timeout = 120
+        self._init_config(config)
+
+    def _init_config(self, config: dict) -> None:
+        """子类实现：初始化 provider 配置"""
+        raise NotImplementedError
 
     @abstractmethod
     def _build_headers(self) -> dict:

@@ -2,6 +2,7 @@
 import logging
 from typing import Optional
 
+from generator.constants import DEFAULT_TIMEOUT, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS
 from .base import BaseAPIClient
 
 logger = logging.getLogger(__name__)
@@ -13,15 +14,14 @@ class ClaudeAPIClient(BaseAPIClient):
     Claude 使用 /v1/messages 接口，响应格式为 content[0].text
     """
 
-    def __init__(self, config: dict):
+    def _init_config(self, config: dict) -> None:
         provider_config = config.get("claude", config)
         self.api_key = provider_config["api_key"]
         self.api_url = provider_config["api_url"]
         self.model = provider_config["model"]
-        self.temperature = provider_config.get("temperature", 0.8)
-        self.max_tokens = provider_config.get("max_tokens", 4096)
-        self.timeout = provider_config.get("timeout", 120)
-        super().__init__(config)
+        self.temperature = provider_config.get("temperature", DEFAULT_TEMPERATURE)
+        self.max_tokens = provider_config.get("max_tokens", DEFAULT_MAX_TOKENS)
+        self.timeout = provider_config.get("timeout", DEFAULT_TIMEOUT)
 
     @property
     def provider_name(self) -> str:

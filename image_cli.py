@@ -23,10 +23,6 @@ def extract_image_prompts(md_path: Path) -> list:
     content = md_path.read_text(encoding="utf-8")
 
     prompts = []
-    # 匹配 ### 图片N 或 ### 配图提示词 之后的列表内容
-    # 找到所有 "步骤一"、"步骤二" 等标题后面的内容
-    step_pattern = re.compile(r'^### (?:图片|配图提示词)\s*$.*?(?=^###|\Z)', re.MULTILINE | re.DOTALL)
-
     # 简单方式：找到所有以 - 开头的内容块（图片描述区域）
     # 先找到"配图提示词"部分
     prompts_section = re.search(r'[#]+ 配图提示词\s*(.*?)(?=#+ [^配图提示词]|$)', content, re.DOTALL | re.IGNORECASE)
@@ -37,7 +33,11 @@ def extract_image_prompts(md_path: Path) -> list:
     section_text = prompts_section.group(1)
 
     # 找到所有图片块（以 ### 图片N 或 ### 配图提示词 开头）
-    image_blocks = re.findall(r'### (?:图片\s*\d+|配图提示词)\s*\n(.*?)(?=### (?:图片\s*\d+|配图提示词)|$)', section_text, re.DOTALL)
+    # 使用更灵活的模式，支持可选空格和不同格式
+    image_blocks = re.findall(
+        r'###\s*(?:图片\s*\d+|配图提示词)\s*\n(.*?)(?=###\s*(?:图片\s*\d+|配图提示词)|$)',
+        section_text, re.DOTALL
+    )
 
     for i, block in enumerate(image_blocks, 1):
         # 提取这个块中的主体内容（去掉 - 列表前缀和其他标记）
@@ -61,6 +61,18 @@ def extract_image_prompts(md_path: Path) -> list:
         if cleaned_lines:
             prompts.append('\n'.join(cleaned_lines))
             logging.info(f"提取到图片 {i} 的提示词 ({len(cleaned_lines)} 行)")
+
+    # 如果正则没匹配到任何块，尝试降级策略：按步骤标题分割
+    if not prompts:
+        logging.warning("正则匹配失败，尝试降级策略...")
+        blocks = re.split(r'^###\s*(?:图片\s*\d+|配图提示词)', section_text, flags=re.MULTILINE)
+        for block in blocks:
+            lines = [l for l in block.strip().split('\n') if l.strip() and '【重要声明】' not in l and l != '---']
+            if lines:
+                # 去掉所有 markdown 列表前缀
+                cleaned = [re.sub(r'^-\s*', '', l) for l in lines]
+                prompts.append('\n'.join(cleaned))
+        logging.info(f"降级策略提取到 {len(prompts)} 张图片提示词")
 
     return prompts
 
@@ -126,7 +138,14 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # 生成图片
+    skipped = 0
     for i, prompt in enumerate(prompts, 1):
+        # 过滤疑似占位提示词
+        if any(kw in prompt for kw in ("不足", "跳过", "略过", "无内容", "资料未提供")):
+            logging.warning(f"图片 {i} 内容疑似占位，跳过")
+            skipped += 1
+            continue
+
         logging.info(f"正在生成图片 {i}/{len(prompts)} ...")
 
         image_data = image_api.generate_image(prompt)
@@ -138,7 +157,8 @@ def main():
         else:
             logging.warning(f"图片 {i} 生成失败，跳过")
 
-    logging.info(f"完成: 共生成 {len([p for p in prompts])} 张图片，输出目录: {output_dir.absolute()}")
+    generated = len(prompts) - skipped
+    logging.info(f"完成: 共生成 {generated}/{len(prompts)} 张图片，输出目录: {output_dir.absolute()}")
 
 
 if __name__ == "__main__":

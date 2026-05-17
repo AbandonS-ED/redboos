@@ -69,8 +69,8 @@ def load_tavily_key(config_path: str = "config.yaml", cli_key: str = None) -> st
         key = config.get("tavily", {}).get("api_key")
         if key:
             return key
-    except Exception:
-        pass
+    except FileNotFoundError:
+        pass  # config.yaml 不存在，继续尝试其他方式
 
     # 从环境变量读取
     key = os.environ.get("TAVILY_API_KEY")
